@@ -1,0 +1,277 @@
+"use client";
+import Head from "next/head";
+import SendIcon from "@mui/icons-material/Send";
+import { useState } from "react";
+import { Box, Stack, Button, TextField } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
+
+const predefinedQuestions = [
+  "When is the deadline for the fellowship program?",
+  "How can I apply?",
+  "What're the qualifications?",
+  "When will I know if I was accepted in the program? "
+];
+
+export default function Home() {
+  // Media query for screen size
+  const isSmallScreen = useMediaQuery("(max-width:700px)");
+
+  // Starting bot message
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content: "Hi! I am Headstarter AI's support assistant. How can I help you today?",
+      questions: predefinedQuestions,
+    },
+  ]);
+
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const sendMessage = async (msg) => {
+    const userMessage = msg || message.trim();
+    if (!userMessage) return; // Empty message
+
+    // Clear the message input field if sending custom message
+    if (!msg) setMessage("");
+
+    // Send the user's message
+    setMessages((messages) => [
+      ...messages,
+      { role: "user", content: userMessage },
+      { role: "assistant", content: "" },
+    ]);
+    setLoading(true);
+
+    // Get the AI's response
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify([...messages, { role: "user", content: userMessage }]),
+    });
+
+    // Stream the AI's response
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let result = "";
+
+    const processText = ({ done, value }) => {
+      if (done) {
+        setLoading(false);
+        setMessages((messages) => [
+          ...messages.slice(0, -1),
+          { role: "assistant", content: result },
+        ]);
+        return;
+      }
+      result += decoder.decode(value);
+      reader.read().then(processText);
+    };
+
+    reader.read().then(processText);
+  };
+
+  // Clear chat history, reset all messages
+  const clearMessages = () => {
+    setMessages([
+      {
+        role: "assistant",
+        content: "Hi! I am the Headstarter support assistant. How can I help you today?",
+        questions: predefinedQuestions,
+      },
+    ]);
+  };
+
+  // Export the chat into a text file
+  const exportChat = () => {
+    // Format the messages to be styled better
+    const formattedMessages = messages
+      .map((message) => {
+        return `${message.role === "assistant" ? "Bot:" : "You:"} ${message.content}`;
+      })
+      .join("\n\n");
+
+    const blob = new Blob([formattedMessages], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "headstarter-chat-history.txt";
+    link.click();
+  };
+
+  // Styling
+  const backgroundStyling = {
+    width: "100vw",
+    height: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "linear-gradient(135deg, #aed2f2, #f7f9fc, #aed2f2)",
+    padding: "10px",
+  };
+
+  const chatBox = {
+    width: isSmallScreen ? "90%" : "50%",
+    borderRadius: "24px",
+    backgroundColor: "white",
+    padding: "20px",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+    overflow: "hidden",
+    fontFamily: "Roboto, sans-serif",
+  };
+
+  const heading = {
+    fontSize: "24px",
+    fontWeight: "bold",
+    marginBottom: "20px",
+    textAlign: "center",
+  };
+
+  const chatMsgs = {
+    flexGrow: 1,
+    overflowY: "auto",
+    marginBottom: "10px",
+  };
+
+  const chatMsg = (role) => ({
+    alignSelf: role === "user" ? "flex-end" : "flex-start",
+    backgroundColor: role === "user" ? "#e0f7fa" : "#e0e0e0",
+    color: "#333",
+    borderRadius: "12px",
+    padding: "10px",
+    marginBottom: "10px",
+    maxWidth: "80%",
+  });
+
+  const typingIndicator = {
+    alignSelf: "flex-start",
+    backgroundColor: "#e0e0e0",
+    borderRadius: "12px",
+    padding: "10px",
+    marginBottom: "10px",
+    maxWidth: "75%",
+  };
+
+  const typingDots = {
+    display: "inline-block",
+    width: "8px",
+    height: "8px",
+    backgroundColor: "#888",
+    borderRadius: "50%",
+    marginRight: "2px",
+    animation: "blink 1.4s infinite both",
+  };
+
+  const buttons = {
+    color: "white",
+    backgroundColor: "#3487d1",
+    borderRadius: "24px",
+    "&:hover": {
+      backgroundColor: "#297ab8",
+    },
+  };
+
+  const inputField = {
+    flexGrow: 1,
+    borderRadius: "24px",
+    backgroundColor: "#f1f3f4",
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "24px",
+      "& fieldset": {
+        border: "none",
+      },
+    },
+  };
+
+  const questionOptions = {
+    margin: "5px 0",
+    padding: "8px 12px",
+    borderRadius: "24px",
+    backgroundColor: "#f0f0f0",
+    color: "#3487d1",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "14px",
+    textAlign: "left",
+    width: "100%",
+    "&:hover": {
+      backgroundColor: "#e0e0e0",
+    },
+  };
+
+  return (
+    <>
+      <Head>
+        <title>Headstarter Support</title>
+      </Head>
+      <Box sx={backgroundStyling}>
+        <Box sx={chatBox}>
+          <div style={heading}>Chat with Headstarter!</div>
+          <Stack sx={chatMsgs}>
+            {messages.map((message, index) => (
+              <Box key={index} sx={chatMsg(message.role)}>
+                {message.content}
+                {message.questions && message.role === "assistant" && (
+                  <Stack spacing={1}>
+                    {message.questions.map((question, idx) => (
+                      <Button
+                        key={idx}
+                        sx={questionOptions}
+                        onClick={() => sendMessage(question)}
+                      >
+                        {question}
+                      </Button>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
+            ))}
+            {loading && (
+              <Box sx={typingIndicator}>
+                <div style={typingDots}></div>
+                <div style={typingDots}></div>
+                <div style={typingDots}></div>
+              </Box>
+            )}
+          </Stack>
+          <TextField
+            sx={inputField}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type your message..."
+            variant="outlined"
+            InputProps={{
+              endAdornment: (
+                <Button sx={buttons} variant="contained" onClick={() => sendMessage()}>
+                  <SendIcon />
+                </Button>
+              ),
+            }}
+          />
+          <Button sx={{ ...buttons, marginTop: "10px" }} onClick={clearMessages}>
+            Clear chat
+          </Button>
+          <Button
+            sx={{
+              color: "#3487d1",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "24px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "bold",
+              "&:hover": {
+                backgroundColor: "#f0f0f2",
+              },
+              marginTop: "10px",
+            }}
+            onClick={exportChat}
+          >
+            Export Chat
+          </Button>
+        </Box>
+      </Box>
+    </>
+  );
+}
