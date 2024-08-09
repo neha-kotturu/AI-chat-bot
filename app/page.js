@@ -5,13 +5,14 @@ import Head from 'next/head'
 import SendIcon from '@mui/icons-material/Send'
 
 const predefinedQuestions = [
-    "Question 1",
-    "Question 2",
-    "Question 3",
+    "When is the deadline for the fellowship program?",
+    "How can I apply?",
+    "What are the qualifications?",
+    "When will I know if I was accepted in the program? "
 ];
 
 export default function Home() {
-    //initializing screen dimensions used for styling
+    //media query for screen size
     const isSmallScreen = useMediaQuery('(max-width:800px)')
 
     //starting bot message
@@ -220,7 +221,6 @@ export default function Home() {
     }
 
     const questionOptions = {
-        margin: '5px 0',
         padding: '8px 12px',
         borderRadius: '24px',
         backgroundColor: '#f0f0f0',
@@ -228,6 +228,7 @@ export default function Home() {
         border: 'none',
         cursor: 'pointer',
         fontSize: '14px',
+        display: 'block',
         textAlign: 'left',
         width: '100%',
         '&:hover': {
@@ -326,4 +327,3 @@ export default function Home() {
         </>
     )
 }
-
